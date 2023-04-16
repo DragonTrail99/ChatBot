@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_bot/components/constants.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -9,9 +12,47 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  String _lastWords = '';
+
+
+  @override
+  void initState(){
+    super.initState();
+    _initSpeech();
+  }
+
+  /// This has to happen only once per app
+  void _initSpeech() async {
+    _speechEnabled = await _speechToText.initialize();
+    setState(() {});
+  }
+
+  /// Each time to start a speech recognition session
+  void _startListening() async {
+    await _speechToText.listen(onResult: _onSpeechResult);
+    setState(() {});
+  }
+
+  /// Stop listening
+  void _stopListening() async {
+    await _speechToText.stop();
+
+    setState(() {});
+  }
+
+
+  void _onSpeechResult(SpeechRecognitionResult result) {
+    setState(() {
+      _lastWords = result.recognizedWords;
+      print(_lastWords);
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width / 2;
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
@@ -35,7 +76,7 @@ class _HomePageState extends State<HomePage> {
                 shape: BoxShape.circle,
               ),
             ),
-            Align(alignment: Alignment.center,child: const Image(image: AssetImage('images/atom 1.png'), height:160,)),
+            const Align(alignment: Alignment.center,child: Image(image: AssetImage('images/atom 1.png'), height:160,)),
           ]),
           const SizedBox(height: 5.0),
           // Large Label
@@ -86,17 +127,18 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-      floatingActionButton: const FloatingActionButton(
-        onPressed: null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _speechToText.isNotListening ? _startListening : _stopListening,
         backgroundColor: Color(0xffFB2576),
         foregroundColor: Color(0xffffffff),
         highlightElevation: 100.0,
+        tooltip: 'Listen',
         child: Icon(
-          Icons.mic,
-          size: 35,
+          _speechToText.isNotListening ? Icons.mic_off : Icons.mic,
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
+
 }
